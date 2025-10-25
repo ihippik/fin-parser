@@ -1,7 +1,6 @@
 use std::io::Error;
 #[derive(Debug)]
-pub enum IoError {
-    Io(Error),
+pub enum AdapterError {
     CsvParseError(String),
     UnknownFormat,
 }
