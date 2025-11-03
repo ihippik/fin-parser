@@ -40,9 +40,9 @@ const PREFIX_OPN_BALANCE: &str = ":60F:";
 const PREFIX_CLS_BALANCE: &str = ":62F:";
 const PREFIX_TX_DESC: &str = ":86:";
 
-pub struct FormatMt940;
+pub struct Mt940;
 
-impl Adapter for FormatMt940 {
+impl Adapter for Mt940 {
     fn read_from<R: BufRead>(r: R) -> Result<Statement, AdapterError> {
         let reader = BufReader::new(r);
         let mt_st = parse_mt940_min(reader).map_err(|e| AdapterError::ParseError(e))?;

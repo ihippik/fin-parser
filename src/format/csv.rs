@@ -7,11 +7,11 @@ use crate::adapter::adapter::Statement;
 use crate::adapter::statement::{DebitCredit, Entry};
 use serde::{Serialize};
 
-pub struct FormatCsv;
+pub struct CSV;
 
-impl FormatCsv {
+impl CSV {
     pub fn new() -> Self {
-        FormatCsv{}
+        CSV {}
     }
 
     fn undefined() -> String {
@@ -37,7 +37,7 @@ pub struct ItemCsv {
     pub bank_name: String,
 }
 
-impl Adapter for FormatCsv {
+impl Adapter for CSV {
     fn read_from<R: Read>(reader: R) -> Result<Statement,AdapterError>{
         let mut entries = Vec::new();
 

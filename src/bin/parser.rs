@@ -1,17 +1,19 @@
 use clap::{Parser, ValueEnum};
 use std::fs::File;
 use std::io::{self, BufReader, Read, Write};
-use fin_parser::format::camt::FormatXML;
-use fin_parser::format::csv::FormatCsv;
-use fin_parser::format::mt940::FormatMt940;
+use fin_parser::format::xml::XML;
+use fin_parser::format::csv::CSV;
+use fin_parser::format::mt940::Mt940;
 use fin_parser::adapter::adapter::Adapter;
 use fin_parser::adapter::errors::AdapterError;
+use fin_parser::format::camt::CAMT;
 
 #[derive(Debug, Clone,ValueEnum)]
 enum Format {
     Csv,
     Mt940,
     Camt053,
+    Xml,
 }
 
 #[derive(Parser, Debug)]
@@ -41,9 +43,10 @@ fn main() -> Result<(), AdapterError>{
     let buf = BufReader::new(reader);
 
     let statement = match cli.in_format {
-        Format::Csv => { FormatCsv::read_from(buf)},
-        Format::Mt940 => { FormatMt940::read_from(buf)},
-        Format::Camt053 => { FormatXML::read_from(buf)},
+        Format::Csv => { CSV::read_from(buf)},
+        Format::Mt940 => { Mt940::read_from(buf)},
+        Format::Xml => { XML::read_from(buf)},
+        Format::Camt053 => { CAMT::read_from(buf)},
     }?;
 
 
@@ -55,9 +58,10 @@ fn main() -> Result<(), AdapterError>{
     };
 
     match cli.out_format {
-        Format::Csv => FormatCsv::write_to(&mut writer, &statement),
-        Format::Mt940 => FormatMt940::write_to(&mut writer, &statement),
-        Format::Camt053 => FormatXML::write_to(&mut writer, &statement),
+        Format::Csv => CSV::write_to(&mut writer, &statement),
+        Format::Mt940 => Mt940::write_to(&mut writer, &statement),
+        Format::Xml => XML::write_to(&mut writer, &statement),
+        Format::Camt053 => CAMT::write_to(&mut writer, &statement),
     }?;
 
     writer.flush().map_err(|e|AdapterError::WriteError(e.to_string()))

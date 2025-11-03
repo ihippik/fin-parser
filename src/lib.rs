@@ -2,9 +2,9 @@ use std::io::{BufRead};
 use crate::adapter::adapter::Adapter;
 use crate::adapter::errors::AdapterError;
 use crate::adapter::statement::Statement;
-use crate::format::csv::FormatCsv;
-use crate::format::mt940::FormatMt940;
-use crate::format::camt::FormatXML;
+use crate::format::csv::CSV;
+use crate::format::mt940::Mt940;
+use crate::format::xml::XML;
 use std::fs::File;
 
 pub mod format;
@@ -25,13 +25,13 @@ pub fn convert<R: BufRead>(
 
     match input_format {
         FormatType::CSV => {
-            statement = FormatCsv::read_from(reader)?;
+            statement = CSV::read_from(reader)?;
         }
         FormatType::MT940 =>{
-            statement = FormatMt940::read_from(reader)?;
+            statement = Mt940::read_from(reader)?;
         }
         FormatType::CAMT053 =>{
-            statement = FormatXML::read_from(reader)?;
+            statement = XML::read_from(reader)?;
         }
     }
 
@@ -39,19 +39,19 @@ pub fn convert<R: BufRead>(
         FormatType::CSV => {
             let file = File::create("output.csv").
                 map_err(|e|AdapterError::ParseError(e.to_string()))?;
-            FormatCsv::write_to(file, &statement).unwrap();
+            CSV::write_to(file, &statement).unwrap();
             Ok("csv file was created.".to_string())
         }
         FormatType::MT940 => {
             let file = File::create("output.mt940").
                 map_err(|e|AdapterError::ParseError(e.to_string()))?;
-            FormatMt940::write_to(file, &statement).unwrap();
+            Mt940::write_to(file, &statement).unwrap();
             Ok("mt940 was created.".to_string())
         }
         FormatType::CAMT053 => {
             let file = File::create("output.camt053").
                 map_err(|e|AdapterError::ParseError(e.to_string()))?;
-            FormatXML::write_to(file, &statement).unwrap();
+            XML::write_to(file, &statement).unwrap();
             Ok("camt053 was created.".to_string())
         }
     }
