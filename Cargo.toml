@@ -7,3 +7,5 @@ edition = "2024"
 csv = "1.4.0"
 serde = { version = "1.0.228", features = ["derive"] }
 regex = "1.12.2"
+quick-xml = { version = "0.38.3", features = ["serialize"] }
+clap = { version = "4.5.51", features = ["derive"] }

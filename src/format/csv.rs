@@ -1,20 +1,26 @@
-use std::io::BufRead;
+use std::io::{Read,Write};
 use regex::Regex;
-use csv::{StringRecord};
-use crate::adapter::adapter::DataAdapter;
+use csv::{StringRecord, WriterBuilder};
 use crate::adapter::errors::AdapterError;
+use crate::adapter::adapter::Adapter;
+use crate::adapter::adapter::Statement;
+use crate::adapter::statement::{DebitCredit, Entry};
+use serde::{Serialize};
 
-pub struct FormatCsv {
-    pub items: Vec<ItemCsv>,
-}
+pub struct FormatCsv;
 
 impl FormatCsv {
     pub fn new() -> Self {
-        FormatCsv{
-            items: Vec::new(),      
-        }
+        FormatCsv{}
+    }
+
+    fn undefined() -> String {
+        "undefined".to_string()
     }
 }
+
+
+#[derive(Serialize)]
 pub struct ItemCsv {
     tx_data:String,
     tx_number: String,
@@ -31,33 +37,81 @@ pub struct ItemCsv {
     pub bank_name: String,
 }
 
-impl DataAdapter<ItemCsv> for FormatCsv {
-    fn import<R: BufRead>(&self, reader: R) -> Result<Vec<ItemCsv>, AdapterError> {
+impl Adapter for FormatCsv {
+    fn read_from<R: Read>(reader: R) -> Result<Statement,AdapterError>{
+        let mut entries = Vec::new();
+
         let mut csv_reader = csv::ReaderBuilder::new()
-            .has_headers(false)   // первая строка — имена полей
+            .has_headers(true)   // первая строка — имена полей
             .from_reader(reader);
 
-        let mut out = Vec::new();
-        let start_line = 12;
-
         for (i,row) in csv_reader.records().enumerate() {
-            if i + 1 < start_line {
-                continue;
-            }
-
             let rec = match row {
                 Ok(r) => r,
-                Err(e) => return Err(AdapterError::CsvParseError(format!("строка {}: {e}", i + 1))),
+                Err(e) => return Err(AdapterError::ParseError(format!("строка {}: {e}", i + 1))),
             };
 
             match parse_row(&rec)? {
-                Some(tx) => out.push(tx),
+                Some(tx) => entries.push(Entry{
+                    booking_date: tx.tx_data.clone(),
+                    value_date: tx.tx_data.clone(),
+                    amount: if tx.credit_amount.is_empty() {tx.debit_amount} else {tx.credit_amount.clone()},
+                    currency: "RUB".to_string(),
+                    kind: if tx.credit_amount.is_empty() { DebitCredit::Debit } else { DebitCredit::Credit },
+                    description: tx.tx_description,
+                    reference: Some(tx.tx_number),
+                }),
                 None => continue,
             }
 
         }
 
-        Ok(out)
+        Ok(Statement{
+            id: Self::undefined(),
+            opening_balance: None,
+            closing_balance:None,
+            account_id: Self::undefined(),
+            entries
+        })
+    }
+
+
+    fn write_to<W: Write>(mut writer: W, st: &Statement) -> Result<(), AdapterError>{
+        let mut builder = WriterBuilder::new().from_writer(&mut writer);
+        for entry in &st.entries {
+            let mut debit_amount = "";
+            let mut credit_amount ="";
+
+            if entry.kind == DebitCredit::Credit {
+                credit_amount = &entry.amount
+            }else{
+                debit_amount = &entry.amount
+            }
+
+            let raw = ItemCsv{
+                tx_data: entry.booking_date.clone(),
+                tx_number: if entry.reference.is_some() {
+                    entry.reference.clone().unwrap()
+                } else {"none".to_string()},
+                tx_description: entry.description.clone(),
+                debit_account_number: if entry.reference.is_some() {
+                    entry.reference.clone().unwrap()
+                } else {"none".to_string()},
+                debit_inn: Self::undefined(),
+                debit_account_name: Self::undefined(),
+                debit_amount: debit_amount.to_string(),
+                credit_account_number: Self::undefined(),
+                credit_inn: Self::undefined(),
+                credit_account_name: "".to_string(),
+                credit_amount: credit_amount.to_string(),
+                bank_bik: Self::undefined(),
+                bank_name: Self::undefined(),
+            };
+            builder.serialize(raw).map_err(|e| AdapterError::ParseError(format!("{e}")))?;
+        }
+
+        builder.flush().map_err(|e| AdapterError::ParseError(format!("{e}")))?;
+        Ok(())
     }
 }
 
@@ -71,8 +125,8 @@ fn parse_row(row: &StringRecord) -> Result<Option<ItemCsv>, AdapterError>{
     let (account, inn, name) = parse_counterparty(&debit);
 
     let debit_account_number    = account.unwrap_or("".to_string());
-    let debit_inn    = inn.unwrap_or("".to_string());;
-    let debit_account_name    = name.unwrap_or("".to_string());;
+    let debit_inn    = inn.unwrap_or("".to_string());
+    let debit_account_name    = name.unwrap_or("".to_string());
     let debit_amount    = get(row, 9).unwrap_or("").to_string();
 
     let credit    = get(row, 8).unwrap_or("").to_string();
@@ -138,16 +192,6 @@ fn parse_bik_and_bank(line: &str) -> Option<(String, String)> {
         let bank = cap[2].trim().to_string();
         (bik, bank)
     })
-}
-
-fn parse_amount(raw: &str) -> Result<f64, AdapterError> {
-    let cleaned = raw.
-        replace(' ', "").
-        replace('\u{00A0}', "").
-        replace(',', ".");
-
-    cleaned.parse::<f64>()
-        .map_err(|e| AdapterError::CsvParseError(format!("некорректная сумма '{raw}': {e}")))
 }
 
 #[cfg(test)]
