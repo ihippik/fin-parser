@@ -124,14 +124,6 @@ fn to_pretty_xml<T: Serialize>(value: &T) -> Result<String, quick_xml::Error> {
     Ok(out)
 }
 
-fn parse_dc(s: &str) -> Result<DebitCredit,AdapterError> {
-    match s {
-        "D" => Ok(DebitCredit::Debit),
-        "C" => Ok(DebitCredit::Credit),
-        _ => Err(AdapterError::ParseError(format!("wrong payment type: {s}"))),
-    }
-}
-
 fn parse_xml_balance(b: XmlBalance) -> Result<Balance, AdapterError> {
     Ok(Balance {
         kind: DebitCredit::Debit,
@@ -139,5 +131,23 @@ fn parse_xml_balance(b: XmlBalance) -> Result<Balance, AdapterError> {
         amount: b.amount,
         currency: b.currency,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_parse_xml_balance() {
+        let b= XmlBalance{
+            date: "20251224".to_string(),
+            amount: "999".to_string(),
+            currency: "EUR".to_string(),
+        };
+        let res = parse_xml_balance(b).unwrap();
+
+        assert_eq!(res.date_yyymmdd, "20251224");
+        assert_eq!(res.amount, "999");
+        assert_eq!(res.currency, "EUR");
+    }
 }
 

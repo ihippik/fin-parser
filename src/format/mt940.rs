@@ -279,3 +279,44 @@ fn compose_booking_date(value_date_yyyymmdd: &str, entry_mmdd: &str) -> String {
     let year = &value_date_yyyymmdd[0..4];
     format!("{year}{entry_mmdd}")
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn test_parse_balance_field() {
+        let s: &str = "C251001EUR1000,00";
+        let b = parse_balance_field(s).unwrap();
+        assert_eq!(b.credit, true);
+        assert_eq!(b.date_yyymmdd, "251001");
+        assert_eq!(b.currency, "EUR");
+        assert_eq!(b.amount, "1000,00");
+
+        let s: &str = "D261001RUB2000,10";
+        let b = parse_balance_field(s).unwrap();
+        assert_eq!(b.credit, false);
+        assert_eq!(b.date_yyymmdd, "261001");
+        assert_eq!(b.currency, "RUB");
+        assert_eq!(b.amount, "2000,10");
+    }
+
+    #[test]
+    fn test_compose_booking_date(){
+        let s: &str = "202051207";
+        let b = compose_booking_date(s, "1115");
+        assert_eq!(b, "20201115");
+    }
+
+    #[test]
+    fn test_parse_transaction_61(){
+        let s: &str = "2510011001C100,00NTRFNONREF";
+        let tx=parse_transaction_61(s).unwrap();
+        assert_eq!(tx.0.date_yyymmdd, "251001");
+        assert_eq!(tx.0.description, "");
+        assert_eq!(tx.0.amount, "100,00");
+        assert_eq!(tx.0.is_credit, true);
+        assert_eq!(tx.0.reference, "");
+        assert_eq!(tx.0.type_code, "NTRFNONREF");
+    }
+}

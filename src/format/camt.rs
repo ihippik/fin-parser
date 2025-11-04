@@ -312,22 +312,6 @@ fn elem_text<W: Write>(wr: &mut Writer<W>, name: &str, s: &str) -> QxRes {
     end(wr, name)
 }
 
-/// <name attr="...">text</name>
-fn elem_text_attr<'a, W: Write>(
-    wr: &mut Writer<W>,
-    name: &str,
-    attrs: impl IntoIterator<Item = (&'a str, &'a str)>,
-    s: &str,
-) -> QxRes {
-    let mut el = BytesStart::new(name);
-    for (k, v) in attrs {
-        el.push_attribute((k, v));
-    }
-    wr.write_event(Event::Start(el)).map_err(map_parse_err)?;
-    text(wr, s)?;
-    end(wr, name)
-}
-
 
 /* ====================== Reader helpers ====================== */
 fn read_text(e: BytesText<'_>) -> Result<String, AdapterError> {
@@ -348,4 +332,84 @@ fn attr_value(e: &BytesStart<'_>, key: &[u8]) -> Option<String> {
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_read_text_plain() {
+        let text = BytesText::from_escaped("Hello World");
+        let result = read_text(text).unwrap();
+        assert_eq!(result, "Hello World");
+    }
+
+    #[test]
+    fn test_read_text_with_escape() {
+        let text = BytesText::from_escaped("Tom &amp; Jerry &lt;3");
+        let result = read_text(text).unwrap();
+        assert_eq!(result, "Tom & Jerry <3");
+    }
+
+    #[test]
+    fn attr_value_found() {
+        let mut el = BytesStart::new("Amt");
+        el.push_attribute(("Ccy", "EUR"));
+        el.push_attribute(("Scale", "2"));
+
+        let val = attr_value(&el, b"Ccy");
+        assert_eq!(val.as_deref(), Some("EUR"));
+    }
+
+    #[test]
+    fn attr_value_not_found() {
+        let mut el = BytesStart::new("Amt");
+        el.push_attribute(("Ccy", "EUR"));
+
+        let val = attr_value(&el, b"Missing");
+        assert!(val.is_none());
+    }
+
+    #[test]
+    fn attr_value_multiple_attrs() {
+        let mut el = BytesStart::new("Amt");
+        el.push_attribute(("Scale", "2"));
+        el.push_attribute(("Ccy", "USD"));
+        el.push_attribute(("Note", "net"));
+
+        let val = attr_value(&el, b"Ccy");
+        assert_eq!(val.as_deref(), Some("USD"));
+    }
+
+    #[test]
+    fn start_then_end_produces_empty_element_pair() {
+        let inner = Vec::<u8>::new();
+        let mut writer = Writer::new(inner);
+
+        start(&mut writer, "Tag").unwrap();
+        end(&mut writer, "Tag").unwrap();
+
+        let out = String::from_utf8(writer.into_inner()).unwrap();
+        assert_eq!(out, "<Tag></Tag>");
+    }
+
+    #[test]
+    fn elem_text_writes_wrapped_text() {
+        let mut writer = Writer::new(Vec::<u8>::new());
+        elem_text(&mut writer, "Id", "123").unwrap();
+        let out = String::from_utf8(writer.into_inner()).unwrap();
+        assert_eq!(out, "<Id>123</Id>");
+    }
+
+    #[test]
+    fn text_is_escaped() {
+        let mut writer = Writer::new(Vec::<u8>::new());
+        start(&mut writer, "a").unwrap();
+        text(&mut writer, "Tom & Jerry <3>").unwrap();
+        end(&mut writer, "a").unwrap();
+
+        let out = String::from_utf8(writer.into_inner()).unwrap();
+        assert_eq!(out, "<a>Tom &amp; Jerry &lt;3&gt;</a>");
+    }
 }
