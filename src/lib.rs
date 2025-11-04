@@ -56,7 +56,3 @@ pub fn convert<R: BufRead>(
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-}

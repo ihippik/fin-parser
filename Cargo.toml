@@ -9,3 +9,6 @@ serde = { version = "1.0.228", features = ["derive"] }
 regex = "1.12.2"
 quick-xml = { version = "0.38.3", features = ["serialize"] }
 clap = { version = "4.5.51", features = ["derive"] }
+assert_cmd = "2"
+predicates = "3"
+tempfile = "3"
