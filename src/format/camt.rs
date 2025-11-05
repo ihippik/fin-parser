@@ -6,6 +6,9 @@ use quick_xml::events::{Event,BytesDecl,BytesStart,BytesText};
 use quick_xml::escape::unescape;
 use crate::adapter::statement::{Balance, DebitCredit, Entry};
 
+/// CAMT adapter implementing the `Adapter` trait.
+///
+/// Converts between CAMPT.053 and internal `Statement` representation.
 pub struct CAMT;
 
 impl Adapter for CAMT {
@@ -38,12 +41,6 @@ impl Adapter for CAMT {
         let mut s = State::default();
 
         let mut buf = Vec::new();
-
-        // Нужен ли нам этот <Id> как идентификатор выписки?
-        // Считаем, что он встречается внутри <Stmt> (а не в <Acct><Id>).
-        // Мы различаем через флаг in_stmt_id, который поднимаем/опускаем в Start/End.
-        // Внешний код устанавливает его там, где нужно.
-        // --------------------------------
 
         loop {
             match reader.read_event_into(&mut buf) {
@@ -261,7 +258,7 @@ fn write_balance<W: Write>(
     wr: &mut Writer<W>,
     tp: &str,
     b: &Balance,
-) -> std::result::Result<(), quick_xml::Error> {
+) -> Result<(), quick_xml::Error> {
     wr.write_event(Event::Start(BytesStart::new("Bal")))?;
     wr.write_event(Event::Start(BytesStart::new("Tp")))?;
     wr.write_event(Event::Start(BytesStart::new("CdOrPrtry")))?;

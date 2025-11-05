@@ -1,3 +1,9 @@
+//! # Fin Parser
+//!
+//! Library for parsing and converting financial file formats such as CSV, MT940, and CAMT.053.
+
+#![warn(missing_docs)]
+
 use std::io::{BufRead};
 use crate::adapter::adapter::Adapter;
 use crate::adapter::errors::{AdapterError,map_parse_err};
@@ -7,15 +13,23 @@ use crate::format::mt940::Mt940;
 use crate::format::xml::XML;
 use std::fs::File;
 
+/// Format modules for various financial data formats and adapters.
 pub mod format;
+
+/// Adapters for converting between different formats.
 pub mod adapter;
 
+/// Errors that can occur during parsing and conversion.
 pub enum FormatType {
+    /// CSV format adapter.
     CSV,
+    /// MT940 format adapter.
     MT940,
+    /// CAMT053 format adapter.
     CAMT053,
 }
 
+/// Converts financial data from one format to another and writes the output to a file.
 pub fn convert<R: BufRead>(
     reader: R,
     input_format: FormatType,

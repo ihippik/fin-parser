@@ -40,6 +40,9 @@ const PREFIX_OPN_BALANCE: &str = ":60F:";
 const PREFIX_CLS_BALANCE: &str = ":62F:";
 const PREFIX_TX_DESC: &str = ":86:";
 
+/// Mt940 adapter implementing the `Adapter` trait.
+///
+/// Converts between MT940 and internal `Statement` representation.
 pub struct Mt940;
 
 impl Adapter for Mt940 {

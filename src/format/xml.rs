@@ -46,6 +46,9 @@ struct XmlStatement {
     entries: Entries,
 }
 
+/// XML adapter implementing the `Adapter` trait.
+///
+/// Converts between XML and internal `Statement` representation.
 pub struct XML;
 
 impl Adapter for XML {

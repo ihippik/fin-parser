@@ -7,19 +7,22 @@ use crate::adapter::adapter::Statement;
 use crate::adapter::statement::{DebitCredit, Entry};
 use serde::{Serialize};
 
+/// CSV adapter implementing the `Adapter` trait.
+///
+/// Converts between CSV and internal `Statement` representation.
 pub struct CSV;
 
 impl CSV {
-    pub fn new() -> Self {
-        CSV {}
-    }
-
     fn undefined() -> String {
         "undefined".to_string()
     }
 }
 
 
+/// A structure representing a single item in CSV format for financial transaction records.
+///
+/// This structure defines various fields that store transaction details in string format.
+/// It derives the `Serialize` trait to facilitate conversion of the struct into formats like JSON or CSV.
 #[derive(Serialize)]
 pub struct ItemCsv {
     tx_data:String,
@@ -34,7 +37,7 @@ pub struct ItemCsv {
     credit_account_name:String,
     credit_amount: String,
     bank_bik: String,
-    pub bank_name: String,
+    bank_name: String,
 }
 
 impl Adapter for CSV {
