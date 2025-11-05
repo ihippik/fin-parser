@@ -45,15 +45,14 @@ pub struct Mt940;
 impl Adapter for Mt940 {
     fn read_from<R: BufRead>(r: R) -> Result<Statement, AdapterError> {
         let reader = BufReader::new(r);
-        let mt_st = parse_mt940_min(reader).map_err(|e| AdapterError::ParseError(e))?;
+        let mt_st = parse_mt940_min(reader).map_err(map_parse_err)?;
         Ok(mt_st.into())
     }
 
 
     fn write_to<W: Write>(mut writer: W, st: &Statement) -> Result<(), AdapterError> {
         writeln!(writer,":20:{}",st.id).map_err(map_parse_err)?;
-        writeln!(writer,":25:{}",st.account_id).
-            map_err(|e|AdapterError::ParseError(e.to_string()))?;
+        writeln!(writer,":25:{}",st.account_id).map_err(map_parse_err)?;
 
         if let Some(opening_balance) = st.opening_balance.as_ref() {
             writeln!(writer, ":60F:{}", balance_to_str(opening_balance)).map_err(map_parse_err)?;
@@ -232,7 +231,7 @@ impl From<(&Transaction, &str)> for Entry {
             amount: format!("{:.2}", tx.amount),
             currency: currency.to_string(),
             kind: DebitCredit::from(tx.is_credit),
-            description: tx.description.clone(),
+            description: format!("{} type:{}",tx.description.clone(),tx.type_code.as_str()) ,
             reference: Some(tx.reference.clone()),
         }
     }
@@ -251,13 +250,13 @@ impl From<&MT940Statement> for Statement {
             id: s.reference.clone(),
             account_id: s.account_id.clone(),
             opening_balance: Some(StBalance{
-                kind: DebitCredit::Debit,
+                kind: DebitCredit::from(s.closing_balance.credit),
                 date_yyymmdd: s.opening_balance.date_yyymmdd.clone(),
                 currency: s.opening_balance.currency.clone(),
                 amount: s.opening_balance.amount.clone(),
             }),
             closing_balance: Some(StBalance{
-                kind: DebitCredit::Debit,
+                kind: DebitCredit::from(s.closing_balance.credit),
                 date_yyymmdd: s.closing_balance.date_yyymmdd.clone(),
                 currency: s.closing_balance.currency.clone(),
                 amount: s.closing_balance.amount.clone(),

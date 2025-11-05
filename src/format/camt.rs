@@ -179,10 +179,10 @@ impl Adapter for CAMT {
 
         // Balances
         if let Some(b) = &st.opening_balance {
-            write_balance(&mut wr, "OPBD", b);
+            write_balance(&mut wr, "OPBD", b).map_err(map_parse_err)?
         }
         if let Some(b) = &st.closing_balance {
-            write_balance(&mut wr, "CLBD", b);
+            write_balance(&mut wr, "CLBD", b).map_err(map_parse_err)?
         }
 
         // Entries
