@@ -3,7 +3,7 @@ use std::string::ToString;
 use crate::adapter::adapter::{Adapter, Statement};
 use crate::adapter::statement::Balance as StBalance;
 use crate::adapter::statement::{DebitCredit, Entry};
-use crate::adapter::errors::AdapterError;
+use crate::adapter::errors::{map_parse_err, AdapterError};
 
 #[derive(Debug)]
 struct MT940Statement {
@@ -51,23 +51,21 @@ impl Adapter for Mt940 {
 
 
     fn write_to<W: Write>(mut writer: W, st: &Statement) -> Result<(), AdapterError> {
-        writeln!(writer,":20:{}",st.id).map_err(|e|AdapterError::ParseError(e.to_string()))?;
+        writeln!(writer,":20:{}",st.id).map_err(map_parse_err)?;
         writeln!(writer,":25:{}",st.account_id).
             map_err(|e|AdapterError::ParseError(e.to_string()))?;
 
-        if st.opening_balance.is_some(){
-            writeln!(writer,":60F:{}",balance_to_str(st.opening_balance.as_ref().unwrap())).
-                map_err(|e|AdapterError::ParseError(e.to_string()))?;
+        if let Some(opening_balance) = st.opening_balance.as_ref() {
+            writeln!(writer, ":60F:{}", balance_to_str(opening_balance)).map_err(map_parse_err)?;
         }
 
         for entry in &st.entries {
-            writeln!(writer,":61:{}",entry.booking_date).map_err(|e|AdapterError::ParseError(e.to_string()))?;
-            writeln!(writer,":86:{}",entry.description).map_err(|e|AdapterError::ParseError(e.to_string()))?;
+            writeln!(writer,":61:{}",entry.booking_date).map_err(map_parse_err)?;
+            writeln!(writer,":86:{}",entry.description).map_err(map_parse_err)?;
         }
 
-        if st.closing_balance.is_some(){
-            writeln!(writer,":62F:{}",balance_to_str(&st.closing_balance.as_ref().unwrap())).
-                map_err(|e|AdapterError::ParseError(e.to_string()))?;
+        if let Some(closing_balance) = st.closing_balance.as_ref() {
+            writeln!(writer, ":62F:{}", balance_to_str(closing_balance)).map_err(map_parse_err)?;
         }
 
         Ok(())

@@ -90,13 +90,9 @@ impl Adapter for CSV {
 
             let raw = ItemCsv{
                 tx_data: entry.booking_date.clone(),
-                tx_number: if entry.reference.is_some() {
-                    entry.reference.clone().unwrap()
-                } else {"none".to_string()},
+                tx_number: entry.reference.clone().unwrap_or_else(|| "none".to_string()),
                 tx_description: entry.description.clone(),
-                debit_account_number: if entry.reference.is_some() {
-                    entry.reference.clone().unwrap()
-                } else {"none".to_string()},
+                debit_account_number: entry.reference.clone().unwrap_or_else(|| "none".to_string()),
                 debit_inn: Self::undefined(),
                 debit_account_name: Self::undefined(),
                 debit_amount: debit_amount.to_string(),
@@ -186,7 +182,9 @@ fn parse_counterparty(block: &str) -> (Option<String>, Option<String>, Option<St
 }
 
 fn parse_bik_and_bank(line: &str) -> Option<(String, String)> {
-    let re = Regex::new(r"БИК\s+(\d{9})\s+(.+)").unwrap();
+    let re = Regex::new(r"БИК\s+(\d{9})\s+(.+)").
+        expect("checked by unit-test, should not fail");
+
     re.captures(line).map(|cap| {
         let bik = cap[1].to_string();
         let bank = cap[2].trim().to_string();
